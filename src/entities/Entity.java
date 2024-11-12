@@ -6,4 +6,5 @@ public class Entity {
     public int speed;
 
 
+
 }
