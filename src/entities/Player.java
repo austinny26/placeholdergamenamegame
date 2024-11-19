@@ -32,11 +32,7 @@ public class Player extends Entity {
         this.keyH = keyH;
 
         setDefaultValues();
-        loadRightSprites();
-        loadLeftSprites();
-        loadUpSprites();
-        loadDownSprites();
-        loadIdleSprites(); // Load idle frames
+        loadSprites();
     }
 
     public void setDefaultValues() {
@@ -47,7 +43,7 @@ public class Player extends Entity {
     }
 
     // Helper method to load right-direction frames
-    private void loadRightSprites() {
+    private void loadSprites() {
         for (int i = 1; i <= 6; i++) {
             String filePath = Paths.get("res/player/characterwalk" + i + ".png").toString();
             try {
@@ -57,10 +53,6 @@ public class Player extends Entity {
                 e.printStackTrace();
             }
         }
-    }
-
-    // Helper method to load left-direction frames
-    private void loadLeftSprites() {
         for (int i = 1; i <= 6; i++) {
             String filePath = Paths.get("res/player/characterleft" + i + ".png").toString();
             try {
@@ -70,10 +62,6 @@ public class Player extends Entity {
                 e.printStackTrace();
             }
         }
-    }
-
-    // Helper method to load up-direction frames
-    private void loadUpSprites() {
         for (int i = 1; i <= 6; i++) {
             String filePath = Paths.get("res/player/characterup" + i + ".png").toString();
             try {
@@ -83,10 +71,6 @@ public class Player extends Entity {
                 e.printStackTrace();
             }
         }
-    }
-
-    // Helper method to load down-direction frames
-    private void loadDownSprites() {
         for (int i = 1; i <= 6; i++) {
             String filePath = Paths.get("res/player/characterdown" + i + ".png").toString();
             try {
@@ -96,10 +80,6 @@ public class Player extends Entity {
                 e.printStackTrace();
             }
         }
-    }
-
-    // Helper method to load idle frames
-    private void loadIdleSprites() {
         for (int i = 1; i <= 2; i++) {
             String filePath = Paths.get("res/player/idle" + i + ".png").toString();
             try {
