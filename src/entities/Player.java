@@ -1,158 +1,214 @@
 package entities;
 
-import main.GamePanel;
-import main.KeyInputs;
-
-import javax.imageio.ImageIO;
-import java.awt.*;
+import static utilz.Constants.PlayerConstants.*;
+import static utilz.HelpMethods.*;
+import java.awt.Graphics;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import javax.imageio.ImageIO;
 
+import main.Game;
+import utilz.LoadSave;
 
 public class Player extends Entity {
-    private BufferedImage[] rightSprites = new BufferedImage[6];
-    private BufferedImage[] leftSprites = new BufferedImage[6];
-    private BufferedImage[] upSprites = new BufferedImage[6];
-    private BufferedImage[] downSprites = new BufferedImage[6];
-    private BufferedImage[] idleSprites = new BufferedImage[2]; // Array for idle animation
+    private BufferedImage[][] animations;
+    private int aniTick, aniIndex, aniSpeed = 25;
+    private int playerAction = IDLE;
+    private boolean moving = false, attacking = false;
+    private boolean left, up, right, down, jump;
+    private float playerSpeed = 2.0f;
+    private int[][] lvlData;
+    private float xDrawOffset = 21 * Game.SCALE;
+    private float yDrawOffset = 4 * Game.SCALE;
 
-    private int spriteNum = 0;
-    private int spriteNumIdle = 0;// Current frame in the animation
-    private int spriteCounter = 0; // Counter for animation speed
-    private boolean isIdle = true; // Tracks whether the player is moving or idle
+    // Jumping / Gravity
+    private float airSpeed = 0f;
+    private float gravity = 0.04f * Game.SCALE;
+    private float jumpSpeed = -2.25f * Game.SCALE;
+    private float fallSpeedAfterCollision = 0.5f * Game.SCALE;
+    private boolean inAir = false;
 
-    GamePanel gp;
-    KeyInputs keyH;
+    public Player(float x, float y, int width, int height) {
+        super(x, y, width, height);
+        loadAnimations();
+        initHitbox(x, y, 20 * Game.SCALE, 27 * Game.SCALE);
 
-    public Player(GamePanel gp, KeyInputs keyH) {
-        this.gp = gp;
-        this.keyH = keyH;
-
-        setDefaultValues();
-        loadSprites();
-    }
-
-    public void setDefaultValues() {
-        x = 100;
-        y = 100;
-        speed = 4;
-        direction = "right";
-    }
-
-    // Helper method to load right-direction frames
-    private void loadSprites() {
-        for (int i = 1; i <= 6; i++) {
-            String filePath = Paths.get("res/player/characterwalk" + i + ".png").toString();
-            try {
-                rightSprites[i - 1] = ImageIO.read(new File(filePath));
-            } catch (IOException e) {
-                System.out.println("Error loading right sprite at path: " + filePath);
-                e.printStackTrace();
-            }
-        }
-        for (int i = 1; i <= 6; i++) {
-            String filePath = Paths.get("res/player/characterleft" + i + ".png").toString();
-            try {
-                leftSprites[i - 1] = ImageIO.read(new File(filePath));
-            } catch (IOException e) {
-                System.out.println("Error loading left sprite at path: " + filePath);
-                e.printStackTrace();
-            }
-        }
-        for (int i = 1; i <= 6; i++) {
-            String filePath = Paths.get("res/player/characterup" + i + ".png").toString();
-            try {
-                upSprites[i - 1] = ImageIO.read(new File(filePath));
-            } catch (IOException e) {
-                System.out.println("Error loading up sprite at path: " + filePath);
-                e.printStackTrace();
-            }
-        }
-        for (int i = 1; i <= 6; i++) {
-            String filePath = Paths.get("res/player/characterdown" + i + ".png").toString();
-            try {
-                downSprites[i - 1] = ImageIO.read(new File(filePath));
-            } catch (IOException e) {
-                System.out.println("Error loading down sprite at path: " + filePath);
-                e.printStackTrace();
-            }
-        }
-        for (int i = 1; i <= 2; i++) {
-            String filePath = Paths.get("res/player/idle" + i + ".png").toString();
-            try {
-                idleSprites[i - 1] = ImageIO.read(new File(filePath));
-            } catch (IOException e) {
-                System.out.println("Error loading idle sprite at path: " + filePath);
-                e.printStackTrace();
-            }
-        }
     }
 
     public void update() {
-        boolean moving = false; // Tracks if any movement key is pressed
-
-        if (keyH.upPressed) {
-            direction = "up";
-            y -= speed;
-            moving = true;
-        } else if (keyH.downPressed) {
-            direction = "down";
-            y += speed;
-            moving = true;
-        } else if (keyH.leftPressed) {
-            direction = "left";
-            x -= speed;
-            moving = true;
-        } else if (keyH.rightPressed) {
-            direction = "right";
-            x += speed;
-            moving = true;
-        }
-
-        isIdle = !moving; // Set to idle if no keys are pressed
-
-        // Update the frame number for animation
-        spriteCounter++;
-        if (spriteCounter > 10 && !isIdle) { // Adjust delay for animation speed
-            spriteNum = (spriteNum + 1) % 6;// Cycle through frames 0 to 5
-            spriteCounter = 0;
-        }
-        else if (spriteCounter > 30) {
-            spriteNumIdle = (spriteNumIdle + 1) % 2;// Cycle through frames 0 to 1
-            spriteCounter = 0;
-        }
+        updatePos();
+        updateAnimationTick();
+        setAnimation();
     }
 
-    public void draw(Graphics2D g2) {
-        BufferedImage image = null;
+    public void render(Graphics g) {
+        g.drawImage(animations[playerAction][aniIndex], (int) (hitbox.x - xDrawOffset), (int) (hitbox.y - yDrawOffset), width, height, null);
+//		drawHitbox(g);
+    }
 
-        if (isIdle) {
-            // Use idle frames when the player is not moving
-            image = idleSprites[spriteNumIdle];
-
-        } else {
-            // Select the correct moving sprite based on direction
-            switch (direction) {
-                case "up":
-                    image = upSprites[spriteNum];
-                    break;
-                case "down":
-                    image = downSprites[spriteNum];
-                    break;
-                case "right":
-                    image = rightSprites[spriteNum];
-                    break;
-                case "left":
-                    image = leftSprites[spriteNum];
-                    break;
+    private void updateAnimationTick() {
+        aniTick++;
+        if (aniTick >= aniSpeed) {
+            aniTick = 0;
+            aniIndex++;
+            if (aniIndex >= GetSpriteAmount(playerAction)) {
+                aniIndex = 0;
+                attacking = false;
             }
+
         }
 
-        if (image != null) {
-            g2.drawImage(image, x, y, gp.tileSize, gp.tileSize, null);
-        }
     }
+
+    private void setAnimation() {
+        int startAni = playerAction;
+
+        if (moving)
+            playerAction = RUNNING;
+        else
+            playerAction = IDLE;
+
+        if (inAir) {
+            if (airSpeed < 0)
+                playerAction = JUMP;
+            else
+                playerAction = FALLING;
+        }
+
+        if (attacking)
+            playerAction = ATTACK_1;
+
+        if (startAni != playerAction)
+            resetAniTick();
+    }
+
+    private void resetAniTick() {
+        aniTick = 0;
+        aniIndex = 0;
+    }
+
+    private void updatePos() {
+        moving = false;
+
+        if (jump)
+            jump();
+        if (!left && !right && !inAir)
+            return;
+
+        float xSpeed = 0;
+
+        if (left)
+            xSpeed -= playerSpeed;
+        if (right)
+            xSpeed += playerSpeed;
+
+        if (!inAir)
+            if (!IsEntityOnFloor(hitbox, lvlData))
+                inAir = true;
+
+        if (inAir) {
+            if (CanMoveHere(hitbox.x, hitbox.y + airSpeed, hitbox.width, hitbox.height, lvlData)) {
+                hitbox.y += airSpeed;
+                airSpeed += gravity;
+                updateXPos(xSpeed);
+            } else {
+                hitbox.y = GetEntityYPosUnderRoofOrAboveFloor(hitbox, airSpeed);
+                if (airSpeed > 0)
+                    resetInAir();
+                else
+                    airSpeed = fallSpeedAfterCollision;
+                updateXPos(xSpeed);
+            }
+
+        } else
+            updateXPos(xSpeed);
+        moving = true;
+    }
+
+    private void jump() {
+        if (inAir)
+            return;
+        inAir = true;
+        airSpeed = jumpSpeed;
+
+    }
+
+    private void resetInAir() {
+        inAir = false;
+        airSpeed = 0;
+
+    }
+
+    private void updateXPos(float xSpeed) {
+        if (CanMoveHere(hitbox.x + xSpeed, hitbox.y, hitbox.width, hitbox.height, lvlData)) {
+            hitbox.x += xSpeed;
+        } else {
+            hitbox.x = GetEntityXPosNextToWall(hitbox, xSpeed);
+        }
+
+    }
+
+    private void loadAnimations() {
+
+        BufferedImage img = LoadSave.GetSpriteAtlas(LoadSave.PLAYER_ATLAS);
+
+        animations = new BufferedImage[9][6];
+        for (int j = 0; j < animations.length; j++)
+            for (int i = 0; i < animations[j].length; i++)
+                animations[j][i] = img.getSubimage(i * 64, j * 40, 64, 40);
+
+    }
+
+    public void loadLvlData(int[][] lvlData) {
+        this.lvlData = lvlData;
+        if (!IsEntityOnFloor(hitbox, lvlData))
+            inAir = true;
+
+    }
+
+    public void resetDirBooleans() {
+        left = false;
+        right = false;
+        up = false;
+        down = false;
+    }
+
+    public void setAttacking(boolean attacking) {
+        this.attacking = attacking;
+    }
+
+    public boolean isLeft() {
+        return left;
+    }
+
+    public void setLeft(boolean left) {
+        this.left = left;
+    }
+
+    public boolean isUp() {
+        return up;
+    }
+
+    public void setUp(boolean up) {
+        this.up = up;
+    }
+
+    public boolean isRight() {
+        return right;
+    }
+
+    public void setRight(boolean right) {
+        this.right = right;
+    }
+
+    public boolean isDown() {
+        return down;
+    }
+
+    public void setDown(boolean down) {
+        this.down = down;
+    }
+
+    public void setJump(boolean jump) {
+        this.jump = jump;
+    }
+
 }
